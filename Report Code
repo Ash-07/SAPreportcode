@@ -1,0 +1,965 @@
+*&---------------------------------------------------------------------*
+*& Report ZALV_ASH
+*&Program ID : ZALV_ASH *
+* Program Title : PURCHASE ORDER DETAILS *
+* Created By : SHAIKH ASHRAF *
+* Creation Date : 18/03/2015 *
+* REQ # / CRF # : REQ # 100 *
+* *
+* Description : *
+* *
+* *
+* Additional Information :
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT ZALV_ASH.
+*----------------------------------------------------------------------*
+* Declaration of Tables *
+*----------------------------------------------------------------------*
+TABLES: ekko, " PURCHASING DOCUMENT
+ekpo, " PURCHASING DOCUMENT ITEM
+eban, " PURCHASE REQUESTION
+lfa1, " VENDOR DETAILS
+ekkn, " ACCOUNT ASSIGNMENT
+t001w, " PLANT DETAILS
+t001l, " STORAGE DETAILS
+adrc, " ADDRESS DETAILS
+ekbe. " HISTORY DETAILS
+TYPE-POOLS: slis.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE ekko *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_ekko,
+ebeln LIKE ekko-ebeln, " PO NO
+bsart LIKE ekko-bsart, " DOC TYPE
+loekz LIKE ekko-loekz, " DELETION
+statu LIKE ekko-statu, " STATUS
+aedat LIKE ekko-aedat, " PO DATE
+lifnr LIKE ekko-lifnr, " VENDOR CODE
+kdatb LIKE ekko-kdatb, " VALID FROM DATE
+kdate LIKE ekko-kdate, " VALID TO DATE
+adrnr LIKE ekko-adrnr, " ADDRESS NUMBER
+END OF ts_ekko.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE ekko *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_ekkoheader,
+ebeln LIKE ekko-ebeln,
+bsart LIKE ekko-bsart,
+name2 LIKE lfa1-name1,
+lifnr LIKE lfa1-lifnr,
+city1 LIKE adrc-city1,
+street LIKE adrc-street,
+post_code1 LIKE adrc-post_code1,
+icon TYPE icon_d,
+expand,
+END OF ts_ekkoheader.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE ekpo *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_ekpo,
+ebeln LIKE ekpo-ebeln,
+ebelp LIKE ekpo-ebelp, " PO LINE ITEM NO
+aedat LIKE ekpo-aedat,
+matnr LIKE ekpo-matnr, " MATERIAL NO/SERIAL NO
+menge LIKE ekpo-menge, " PR QTY
+meins LIKE ekpo-meins, " UNIT OF MEASUREMENT
+netpr LIKE ekpo-netpr, " RATE
+netwr LIKE ekpo-netwr, " NET PRICE
+banfn LIKE ekpo-banfn, " PR NO
+werks LIKE ekpo-werks, " PLANT CODE
+lgort LIKE ekpo-lgort,
+bnfpo LIKE ekpo-bnfpo,
+END OF ts_ekpo.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE eban *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_eban,
+banfn TYPE eban-banfn,
+bnfpo TYPE eban-bnfpo, " PR LINE ITEM NO
+bsart TYPE eban-bsart,
+badat TYPE eban-badat,
+menge TYPE eban-menge,
+matnr TYPE eban-matnr,
+meins TYPE eban-meins,
+END OF ts_eban.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE lfa1 *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_lfa1,
+lifnr TYPE lfa1-lifnr,
+name2 TYPE lfa1-name1, " VENDOR NAME
+adrnr TYPE lfa1-adrnr, " ADDRESS NUMBER
+werks TYPE lfa1-werks,
+END OF ts_lfa1.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE ekkn *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_ekkn,
+ebeln TYPE ekkn-ebeln,
+ebelp TYPE ekkn-ebelp,
+aedat TYPE ekkn-aedat,
+menge TYPE ekkn-menge,
+kostl TYPE ekkn-kostl, " COST CENTER
+sakto TYPE ekkn-sakto, " G/L CODE
+END OF ts_ekkn.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE t001w *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_t001w,
+name1 TYPE t001w-name1, " PLANT NAME
+lifnr TYPE t001w-lifnr,
+werks TYPE t001w-werks,
+END OF ts_t001w.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE t001l *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_t001l,
+werks TYPE t001l-werks,
+lgort TYPE t001l-lgort,
+lgobe TYPE t001l-lgobe,
+lifnr TYPE t001l-lifnr,
+END OF ts_t001l.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE ekbe *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_ekbe,
+ebeln TYPE ekbe-ebeln,
+ebelp TYPE ekbe-ebelp,
+menge LIKE ekbe-menge,
+shkzg LIKE ekbe-shkzg, " DEBIT/CREDIT
+matnr LIKE ekbe-matnr,
+werks LIKE ekbe-werks,
+packno LIKE ekbe-packno,
+belnr LIKE ekbe-belnr,
+END OF ts_ekbe.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE t005u *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_t005u,
+bland LIKE t005u-bland, " REGION
+END OF ts_t005u.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE adrc *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_adrc,
+addrnumber LIKE adrc-addrnumber,
+name1 LIKE adrc-name1, " ADDR NUMBER
+city1 LIKE adrc-city1, " CITY
+post_code1 LIKE adrc-post_code1, " POSTAL CODE
+street LIKE adrc-street, " STREET
+str_suppl1 LIKE adrc-str_suppl1,
+str_suppl2 LIKE adrc-str_suppl2,
+END OF ts_adrc.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE final *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_final,
+bsart LIKE ekko-bsart,
+ebeln LIKE ekko-ebeln,
+ebelp LIKE ekpo-ebelp,
+aedat LIKE ekko-aedat,
+kdatb LIKE ekko-kdatb,
+kdate LIKE ekko-kdate,
+statu LIKE ekko-statu,
+loekz LIKE ekko-loekz,
+banfn LIKE eban-banfn,
+bnfpo LIKE eban-bnfpo,
+badat LIKE eban-badat,
+lifnr LIKE lfa1-lifnr,
+name2 LIKE lfa1-name1,
+kostl LIKE ekkn-kostl,
+sakto LIKE ekkn-sakto,
+werks LIKE eban-werks,
+name1 LIKE t001w-name1,
+lgort LIKE t001l-lgort,
+lgobe LIKE t001l-lgobe,
+str_suppl1 LIKE adrc-str_suppl1,
+str_suppl2 LIKE adrc-str_suppl2,
+street LIKE adrc-street,
+city1 LIKE adrc-city1,
+post_code1 LIKE adrc-post_code1,
+matnr LIKE ekpo-matnr,
+belnr LIKE ekbe-belnr,
+meins LIKE ekpo-meins,
+menge LIKE ekpo-menge,
+netpr LIKE ekpo-netpr,
+netwr LIKE ekpo-netwr,
+shkzg LIKE ekbe-shkzg,
+END OF ts_final.
+*----------------------------------------------------------------------*
+* Declaration of STRUCTURE finaltree *
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ts_treeitem,
+ebelp LIKE ekpo-ebelp,
+aedat LIKE ekko-aedat,
+kdatb LIKE ekko-kdatb,
+kdate LIKE ekko-kdate,
+statu LIKE ekko-statu,
+loekz LIKE ekko-loekz,
+banfn LIKE eban-banfn,
+bnfpo LIKE eban-bnfpo,
+badat LIKE eban-badat,
+kostl LIKE ekkn-kostl,
+sakto LIKE ekkn-sakto,
+werks LIKE eban-werks,
+name1 LIKE t001w-name1,
+lgort LIKE t001l-lgort,
+lgobe LIKE t001l-lgobe,
+str_suppl1 LIKE adrc-str_suppl1,
+str_suppl2 LIKE adrc-str_suppl2,
+matnr LIKE ekpo-matnr,
+belnr LIKE ekbe-belnr,
+meins LIKE ekpo-meins,
+menge LIKE ekpo-menge,
+netpr LIKE ekpo-netpr,
+netwr LIKE ekpo-netwr,
+shkzg LIKE ekbe-shkzg,
+END OF ts_treeitem.
+*----------------------------------------------------------------------*
+* Declaration of Internal Tables AND WORK AREA *
+*----------------------------------------------------------------------*
+DATA: gt_ekko TYPE STANDARD TABLE OF ts_ekko , " INTERNAL TABLE FOR PURCHASING ORDER
+gs_ekko TYPE ts_ekko. " WORK AREA FOR PURCHASING ORDER
+DATA: gt_ekpo TYPE STANDARD TABLE OF ts_ekpo, " INTERNAL TABLE FOR PURCHASING DOCUMENT ITEM
+gs_ekpo TYPE ts_ekpo. " WORK AREA FOR PURCHASING DOCUMENT ITEM
+DATA: gt_eban TYPE STANDARD TABLE OF ts_eban, " INTERNAL TABLE FOR PURCHASE REQUESTION
+gs_eban TYPE ts_eban. " WORK AREA FOR PURCHASE REQUESTION
+DATA: gt_lfa1 TYPE STANDARD TABLE OF ts_lfa1, " INTERNAL TABLE FOR VENDOR DETAILS
+gs_lfa1 TYPE ts_lfa1. " WORK AREA FOR VENDOR DETAILS
+DATA: gt_ekkn TYPE STANDARD TABLE OF ts_ekkn, " INTERNAL TABLE FOR ACCOUNT ASSIGNMENT
+gs_ekkn TYPE ts_ekkn. " WORK AREA FOR ACCOUNT ASSIGNMENT
+DATA: gt_t001w TYPE STANDARD TABLE OF ts_t001w, " INTERNAL TABLE FOR PLANT DETAILS
+gs_t001w TYPE ts_t001w . " WORK AREA FOR PLANT DETIALS
+DATA: gt_t001l TYPE STANDARD TABLE OF ts_t001l, " INTERNAL TABLE FOR STORAGE DETAILS
+gs_t001l TYPE ts_t001l. " WORK AREA FOR STORAGE DETAILS
+DATA: gt_ekbe TYPE STANDARD TABLE OF ts_ekbe, " INTERNAL TABLE FOR HISTORY OF PD
+gs_ekbe TYPE ts_ekbe. " WORK AREA FOR HISTORY OF PD
+DATA: gt_t005u TYPE STANDARD TABLE OF ts_t005u, " INTERNAL TABLE FOR REGION
+gs_t005u TYPE ts_t005u. " WORK AREA FOR REGION
+DATA: gt_adrc TYPE STANDARD TABLE OF ts_adrc, " INTERNAL TABLE FOR ADDRESS
+gs_adrc TYPE ts_adrc. " WORK AREA FOR ADDRESS
+DATA: gt_final TYPE STANDARD TABLE OF ts_final, " INTERNAL TABLE FOR FINAL DISPLAY
+gs_final TYPE ts_final. " WORK AREA FOR FINAL DISPLAY
+DATA: gt_treefinal TYPE STANDARD TABLE OF ts_final, " INTERNAL TABLE FOR ALV TREE FORMAT
+gs_keyinfo TYPE slis_keyinfo_alv,
+" WORK AREA FOR ALV TREE
+gt_layout TYPE slis_layout_alv.
+DATA: gt_ekkoheader TYPE STANDARD TABLE OF ts_ekkoheader, " INTERNAL TABLE FOR HEADER
+gs_ekkoheader TYPE ts_ekkoheader.
+DATA: gt_treeitem TYPE STANDARD TABLE OF ts_treeitem, " INTERNAL TABLE FOR FINAL DISPLAY
+gs_treeitem TYPE ts_treeitem. " WORK AREA FOR FINAL DISPLAY
+*----------------------------------------------------------------------*
+* Selection Screen *
+*----------------------------------------------------------------------*
+SELECTION-SCREEN BEGIN OF BLOCK report1 " FRAME FOR SELECTION SCREEN
+WITH FRAME TITLE text-002.
+PARAMETERS: gridform RADIOBUTTON GROUP rbg, " RADIOBUTTON FOR ALV GRID
+gridtree RADIOBUTTON GROUP rbg. " RADIOBUTTON FOR TREE
+SELECTION-SCREEN END OF BLOCK report1.
+SELECTION-SCREEN BEGIN OF BLOCK report " FRAME FOR SELECTION SCREEN
+WITH FRAME TITLE text-001.
+SELECT-OPTIONS: so_aedat FOR ekko-aedat, " SELECT OPTION FOR DATE
+so_bsart FOR ekko-bsart, " SELECT OPTION FOR DOC TYPE
+so_ebeln FOR ekko-ebeln OBLIGATORY, " SELECT OPTION FOR PO NO
+so_banfn FOR eban-banfn, " SELECT OPTION FOR PR NO
+so_sakto FOR ekkn-sakto, " SELECT OPTION FOR G/L CODE
+so_kostl FOR ekkn-kostl, " SELECT OPTION FOR COST CENTER
+so_lifnr FOR lfa1-lifnr, " SELECT OPTION FOR VENDOR CODE
+so_matnr FOR ekpo-matnr. " SELECT OPTION FOR MATERIAL NO
+SELECTION-SCREEN END OF BLOCK report.
+*----------------------------------------------------------------------*
+* Declaration of FIELDCATALOG *
+*----------------------------------------------------------------------*
+DATA: gt_fieldcat TYPE slis_t_fieldcat_alv , " FIELDCATLOG FOR GRID AND TREE DISPLAY.
+gs_fieldcat LIKE LINE OF gt_fieldcat.
+*----------------------------------------------------------------------*
+* Start of Selection *
+*----------------------------------------------------------------------*
+START-OF-SELECTION.
+PERFORM sort.
+PERFORM validation.
+PERFORM selection.
+PERFORM moving_data.
+PERFORM fieldcatlog.
+IF gridform EQ 'X'.
+PERFORM alv_display.
+ELSEIF gridtree EQ 'X'.
+PERFORM treedisplay.
+ENDIF.
+*PERFORM CLEAR.
+*&---------------------------------------------------------------------*
+*& Form VALIDATION
+*&---------------------------------------------------------------------*
+* text
+*----------------------------------------------------------------------*
+FORM validation.
+SELECT SINGLE ebeln
+ebelp
+aedat
+menge
+kostl
+sakto FROM ekkn INTO gs_ekkn WHERE " VALIDATION FOR COST CENTER AND sakto IN so_sakto
+AND kostl IN so_kostl .
+IF sy-subrc <> 0 .
+MESSAGE s004(zash) DISPLAY LIKE 'E'.
+STOP. " G/L CODE AND COST CENTER NOT ENDIF .
+SELECT SINGLE
+ebeln
+ebelp
+aedat
+matnr
+menge
+meins
+netpr
+netwr
+banfn
+werks
+FROM ekpo INTO gs_ekpo
+WHERE banfn IN so_banfn
+AND matnr in so_matnr.
+IF sy-subrc <> 0.
+MESSAGE s005(zASH) DISPLAY LIKE 'E'. " PR NO AND MATERIAL NO NOT FOUND STOP.
+ENDIF.
+SELECT SINGLE
+lifnr
+name1
+adrnr
+werks
+FROM lfa1 INTO gs_lfa1 " VALIDATION FOR VENDOR CODE
+WHERE lifnr IN so_lifnr.
+IF sy-subrc <> 0.
+MESSAGE s003(zash) DISPLAY LIKE 'E'. " VENDOR CODE INVALID
+STOP.
+ENDIF.
+ENDFORM . "EKKN_VALID
+*&---------------------------------------------------------------------*
+*& Form SELECTION
+*&---------------------------------------------------------------------*
+* SELECTING REQUIRED FIELDS FROM TABLES TO INTERNAL TABLES
+*----------------------------------------------------------------------*
+FORM selection.
+*&---------------------------------------------------------------------*
+* SELECTING PURCHASING DOCUMENT DETAILS INTO INTERNAL TABLE
+*----------------------------------------------------------------------*
+IF gt_ekko IS INITIAL.
+SELECT
+ebeln
+bsart
+loekz
+statu
+aedat
+lifnr
+kdatb
+kdate
+adrnr
+FROM ekko INTO TABLE gt_ekko
+WHERE ebeln IN so_ebeln
+AND aedat IN so_aedat
+AND bsart IN so_bsart
+AND lifnr in so_lifnr.
+IF sy-subrc <> 0.
+MESSAGE s000(zash) DISPLAY LIKE 'E'.
+STOP.
+ENDIF.
+ENDIF.
+*&---------------------------------------------------------------------*
+* SELECTING PURCHASING DOCUMENT ITEM DETAILS INTO INTERNAL TABLE
+*----------------------------------------------------------------------*
+IF gt_ekpo IS INITIAL.
+SELECT
+ebeln
+ebelp
+aedat
+matnr
+menge
+meins
+netpr
+netwr
+banfn
+werks
+FROM ekpo INTO TABLE gt_ekpo FOR ALL ENTRIES IN gt_ekko
+WHERE ebeln = gt_ekko-ebeln
+AND banfn IN so_banfn.
+ENDIF.
+*&---------------------------------------------------------------------*
+* SELECTING VENDOR DETAILS DETAILS INTO INTERNAL TABLE
+*----------------------------------------------------------------------*
+SELECT
+lifnr
+name1
+adrnr
+werks
+FROM lfa1 INTO TABLE gt_lfa1 FOR ALL ENTRIES IN gt_ekko
+WHERE lifnr = gt_ekko-lifnr.
+*&---------------------------------------------------------------------*
+* SELECTING ACCOUNT DETAILS INTO INTERNAL TABLE
+*----------------------------------------------------------------------*
+IF gt_ekkn IS INITIAL.
+SELECT
+ebeln
+ebelp
+aedat
+menge
+kostl
+sakto
+FROM ekkn INTO TABLE gt_ekkn
+FOR ALL ENTRIES IN gt_ekpo
+WHERE ebeln = gt_ekpo-ebeln
+AND ebelp = gt_ekpo-ebelp
+* AND aedat = gt_ekpo-aedat
+AND sakto IN so_sakto.
+IF sy-subrc <> 0.
+* MESSAGE s004(zash) DISPLAY LIKE 'E'.
+* STOP.
+ENDIF.
+endif.
+*&---------------------------------------------------------------------*
+* SELECTING PURCHASE REQUESTION DETAILS INTO INTERNAL TABLE
+*----------------------------------------------------------------------*
+SELECT banfn
+bnfpo
+bsart
+badat
+menge
+matnr
+meins
+FROM eban INTO TABLE gt_eban
+FOR ALL ENTRIES IN gt_ekpo
+WHERE banfn IN so_banfn
+AND ebeln = gt_ekpo-ebeln
+AND matnr IN so_matnr.
+IF sy-subrc <> 0.
+* MESSAGE s005(zash) DISPLAY LIKE 'E'.
+* STOP.
+ENDIF.
+*&---------------------------------------------------------------------*
+* SELECTING PURCHASING DOCUMENT HISTORY DETAILS INTO INTERNAL TABLE
+*----------------------------------------------------------------------*
+IF gt_ekbe IS INITIAL .
+SELECT
+ebeln
+ebelp
+menge
+shkzg
+matnr
+werks
+packno
+belnr
+FROM ekbe INTO TABLE gt_ekbe FOR ALL ENTRIES IN gt_ekko
+WHERE ebeln = gt_ekko-ebeln
+AND matnr in so_matnr.
+IF sy-subrc <> 0.
+* MESSAGE s000(zash) DISPLAY LIKE 'E'.
+* STOP.
+ENDIF.
+ENDIF.
+*&---------------------------------------------------------------------*
+* SELECTING STORAGE DETAILS DETAILS INTO INTERNAL TABLE
+*----------------------------------------------------------------------*
+SELECT werks
+lgort
+lgobe
+lifnr
+FROM t001l INTO TABLE gt_t001l FOR ALL ENTRIES IN gt_ekpo
+WHERE werks = gt_ekpo-werks.
+IF sy-subrc <> 0.
+* MESSAGE s006(zash) DISPLAY LIKE 'E'.
+* STOP.
+ENDIF.
+*&---------------------------------------------------------------------*
+* SELECTING PLANT DETAILS INTO INTERNAL TABLE
+*----------------------------------------------------------------------*
+SELECT name1
+lifnr
+werks
+FROM t001w INTO TABLE gt_t001w FOR ALL ENTRIES IN gt_ekpo
+WHERE werks = gt_ekpo-werks.
+IF sy-subrc <> 0.
+MESSAGE s008(zash) DISPLAY LIKE 'E'.
+STOP.
+ENDIF.
+*&---------------------------------------------------------------------*
+* SELECTING ADDRESS DETAILS INTO INTERNAL TABLE
+*----------------------------------------------------------------------*
+* IF gt_lfa1 IS NOT INITIAL.
+SELECT addrnumber
+name1
+city1
+post_code1
+street
+str_suppl1
+str_suppl2
+FROM adrc INTO TABLE gt_adrc FOR ALL ENTRIES IN gt_lfa1
+WHERE addrnumber = gt_lfa1-adrnr.
+IF sy-subrc <> 0.
+* MESSAGE s007(zash) DISPLAY LIKE 'E'.
+* STOP.
+ENDIF.
+*&---------------------------------------------------------------------*
+* SELECTING REGION DETAILS INTO INTERNAL TABLE
+*----------------------------------------------------------------------*
+SELECT bland
+FROM t005u INTO TABLE gt_t005u.
+ENDFORM. "selection
+*&---------------------------------------------------------------------*
+*& Form sort
+*&---------------------------------------------------------------------*
+* text
+*----------------------------------------------------------------------*
+FORM sort.
+SORT : gt_ekkn BY ebeln ebelp,
+gt_eban BY banfn bnfpo,
+gt_ekbe BY ebeln ebelp belnr,
+gt_t001l BY werks lgort,
+gt_t005u BY bland,
+gt_adrc BY addrnumber,
+gt_t001w BY werks,
+gt_lfa1 BY lifnr.
+ENDFORM. "SELECTION
+*&---------------------------------------------------------------------*
+*& Form MOVING_DATA
+*&---------------------------------------------------------------------*
+* MOVING DATA OF EACH INTERNAL TABLE TO FINAL INTERNAL TABLE
+*----------------------------------------------------------------------*
+FORM moving_data.
+CLEAR: gs_ekko, gs_ekpo, gs_ekkn, gs_eban, gs_lfa1, gs_adrc, gs_t001l, gs_t001w, gs_ekbe, gs_final. LOOP AT gt_ekko INTO gs_ekko .
+MOVE gs_ekko-ebeln TO gs_final-ebeln.
+MOVE gs_ekko-ebeln TO gs_ekkoheader-ebeln.
+MOVE gs_ekko-bsart TO gs_final-bsart. " MOVING PURCHASING DOCUMENT DETAILS TO MOVE gs_ekko-bsart TO gs_ekkoheader-bsart.
+MOVE gs_ekko-aedat TO gs_final-aedat.
+MOVE gs_ekko-aedat TO gs_treeitem-aedat.
+MOVE gs_ekko-kdatb TO gs_final-kdatb.
+MOVE gs_ekko-kdatb TO gs_treeitem-kdatb.
+MOVE gs_ekko-kdate TO gs_final-kdate.
+MOVE gs_ekko-kdate TO gs_treeitem-kdate.
+MOVE gs_ekko-statu TO gs_final-statu.
+MOVE gs_ekko-statu TO gs_treeitem-statu.
+MOVE gs_ekko-loekz TO gs_final-loekz.
+MOVE gs_ekko-loekz TO gs_treeitem-loekz.
+LOOP AT gt_ekpo INTO gs_ekpo
+WHERE ebeln = gs_ekko-ebeln.
+IF gridform EQ 'X'. "IF RADIO BUTTON SELECTED IS GRIDFORM
+CALL FUNCTION 'CONVERSION_EXIT_CUNIT_OUTPUT' " CONVERTING UNIT OF MEASUREMENT USING EXPORTING
+input = gs_ekpo-meins
+language = sy-langu
+IMPORTING
+output = gs_final-meins
+EXCEPTIONS
+unit_not_found = 1
+OTHERS = 2.
+IF sy-subrc <> 0.
+MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+ENDIF.
+MOVE gs_ekpo-ebelp TO gs_final-ebelp.
+MOVE gs_ekpo-ebelp TO gs_treeitem-ebelp. " MOVING PURCHASING DOCUMENT ITEM MOVE gs_ekpo-matnr TO gs_final-matnr.
+MOVE gs_ekpo-matnr TO gs_treeitem-matnr.
+MOVE gs_ekpo-menge TO gs_final-menge.
+MOVE gs_ekpo-menge TO gs_treeitem-menge.
+MOVE gs_ekpo-netpr TO gs_final-netpr.
+MOVE gs_ekpo-netpr TO gs_treeitem-netpr.
+MOVE gs_ekpo-netwr TO gs_final-netwr.
+MOVE gs_ekpo-netwr TO gs_treeitem-netwr.
+MOVE gs_ekpo-werks TO gs_final-werks.
+MOVE gs_ekpo-werks TO gs_treeitem-werks.
+ELSEIF gridtree EQ 'X'. "IF RADIO BUTTON SELECTED IS GRIDTREE
+MOVE gs_ekpo-ebelp TO gs_final-ebelp.
+MOVE gs_ekpo-ebelp TO gs_treeitem-ebelp. " MOVING PURCHASING DOCUMENT ITEM MOVE gs_ekpo-matnr TO gs_final-matnr.
+MOVE gs_ekpo-matnr TO gs_treeitem-matnr.
+MOVE gs_ekpo-menge TO gs_final-menge.
+MOVE gs_ekpo-menge TO gs_treeitem-menge.
+MOVE gs_ekpo-meins TO gs_final-meins.
+MOVE gs_ekpo-meins TO gs_treeitem-meins.
+MOVE gs_ekpo-netpr TO gs_final-netpr.
+MOVE gs_ekpo-netpr TO gs_treeitem-netpr.
+MOVE gs_ekpo-netwr TO gs_final-netwr.
+MOVE gs_ekpo-netwr TO gs_treeitem-netwr.
+MOVE gs_ekpo-werks TO gs_final-werks.
+MOVE gs_ekpo-werks TO gs_treeitem-werks.
+ENDIF.
+READ TABLE gt_eban INTO gs_eban " MOVING PURCHASE REQUESTION DETAILS
+WITH KEY banfn = gs_ekpo-banfn
+bnfpo = gs_ekpo-bnfpo
+BINARY SEARCH.
+IF sy-subrc = 0.
+MOVE gs_eban-banfn TO gs_final-banfn.
+MOVE gs_eban-banfn TO gs_treeitem-banfn.
+MOVE gs_eban-bnfpo TO gs_final-bnfpo.
+MOVE gs_eban-bnfpo TO gs_treeitem-bnfpo.
+MOVE gs_eban-badat TO gs_final-badat.
+MOVE gs_eban-badat TO gs_treeitem-badat.
+ENDIF.
+READ TABLE gt_t001l INTO gs_t001l " MOVING STORAGE LOCATION DETAILS TO FINAL WITH KEY werks = gs_ekpo-werks BINARY SEARCH.
+IF sy-subrc = 0.
+MOVE gs_t001l-lgort TO gs_final-lgort.
+MOVE gs_t001l-lgort TO gs_treeitem-lgort.
+MOVE gs_t001l-lgobe TO gs_final-lgobe.
+MOVE gs_t001l-lgobe TO gs_treeitem-lgobe.
+ENDIF.
+READ TABLE gt_t001w INTO gs_t001w " MOVING PLANT DETAILS TO FINAL STRUCTURE
+WITH KEY werks = gs_ekpo-werks BINARY SEARCH.
+IF sy-subrc = 0.
+MOVE gs_t001w-name1 TO gs_final-name1.
+MOVE gs_t001w-name1 TO gs_treeitem-name1.
+MOVE gs_t001w-werks TO gs_final-werks.
+MOVE gs_t001w-werks TO gs_treeitem-werks.
+ENDIF.
+READ TABLE gt_lfa1 INTO gs_lfa1 " MOVING VENDOR DETAILS TO FINAL STRUCTURE
+WITH KEY lifnr = gs_ekko-lifnr BINARY SEARCH.
+MOVE gs_lfa1-lifnr TO gs_final-lifnr.
+MOVE gs_lfa1-lifnr TO gs_ekkoheader-lifnr.
+MOVE gs_lfa1-name2 TO gs_final-name2.
+MOVE gs_lfa1-name2 TO gs_ekkoheader-name2.
+READ TABLE gt_adrc INTO gs_adrc " MOVING ADDRESS DETAILS TO FINAL STRUCTURE
+WITH KEY addrnumber = gs_lfa1-adrnr BINARY SEARCH.
+MOVE gs_adrc-str_suppl1 TO gs_final-str_suppl1.
+MOVE gs_adrc-str_suppl1 TO gs_treeitem-str_suppl1.
+MOVE gs_adrc-str_suppl2 TO gs_final-str_suppl2.
+MOVE gs_adrc-str_suppl2 TO gs_treeitem-str_suppl2.
+MOVE gs_adrc-city1 TO gs_final-city1.
+MOVE gs_adrc-city1 TO gs_ekkoheader-city1.
+MOVE gs_adrc-street TO gs_final-street.
+MOVE gs_adrc-street TO gs_ekkoheader-street.
+MOVE gs_adrc-post_code1 TO gs_final-post_code1.
+MOVE gs_adrc-post_code1 TO gs_ekkoheader-post_code1.
+READ TABLE gt_ekkn INTO gs_ekkn " MOVING ACCOUNT DETAILS TO FINAL STRUCTURE
+WITH KEY ebeln = gs_ekpo-ebeln
+ebelp = gs_ekpo-ebelp BINARY SEARCH.
+MOVE gs_ekkn-kostl TO gs_final-kostl.
+MOVE gs_ekkn-kostl TO gs_treeitem-kostl.
+MOVE gs_ekkn-sakto TO gs_final-sakto.
+MOVE gs_ekkn-sakto TO gs_treeitem-sakto.
+LOOP AT gt_ekbe INTO gs_ekbe " Moving data from GT_EKBE TO GT_FINAL
+WHERE ebelp = gs_ekpo-ebelp
+AND ebeln = gs_ekPo-ebeln.
+MOVE gs_ekbe-matnr TO gs_final-matnr.
+SHIFT gs_ekbe-belnr LEFT DELETING LEADING '0'.
+MOVE gs_ekbe-belnr TO gs_final-belnr.
+MOVE gs_ekbe-belnr TO gs_treeitem-belnr.
+MOVE gs_ekbe-shkzg TO gs_final-shkzg.
+MOVE gs_ekbe-shkzg TO gs_treeitem-shkzg.
+APPEND gs_final TO gt_final.
+ENDLOOP.
+IF gs_ekbe IS INITIAL.
+APPEND gs_final TO gt_final.
+ENDIF.
+clear gs_ekbe.
+ENDLOOP. " endloop of ekpo
+IF gs_final IS INITIAL .
+APPEND gs_final TO gt_final.
+ENDIF.
+APPEND gs_ekkoheader TO gt_ekkoheader.
+APPEND gs_treeitem TO gt_treeitem .
+CLEAR gs_ekko.
+ENDLOOP . " ENDLOOP OF EKKO
+* DELETE ADJACENT DUPLICATES FROM gt_final COMPARING ebeln ebelp matnr belnr lifnr .
+ENDFORM. "MOVING_DATA
+*&---------------------------------------------------------------------*
+*& Form FIELDCATLOG
+*&---------------------------------------------------------------------*
+FORM fieldcatlog.
+gs_keyinfo-header01 = 'EBELN'.
+gs_keyinfo-item01 = 'EBELN'.
+gs_fieldcat-fieldname = 'BSART'.
+gs_fieldcat-seltext_m = 'DOC TYPE.'.
+gs_fieldcat-col_pos = 0.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_EKKOHEADER'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'EBELN'.
+gs_fieldcat-seltext_m = 'PO NO.'.
+gs_fieldcat-col_pos = 1.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_EKKOHEADER'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'EBELP'.
+gs_fieldcat-seltext_m = 'P.O line Item number.'.
+gs_fieldcat-col_pos = 2.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'AEDAT'.
+gs_fieldcat-seltext_m = 'P.O. DATE.'.
+gs_fieldcat-col_pos = 3.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'KDATB'.
+gs_fieldcat-seltext_m = 'VALID FROM DATE.'.
+gs_fieldcat-col_pos = 4.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'KDATE'.
+gs_fieldcat-seltext_m = 'VALID TO DATE.'.
+gs_fieldcat-col_pos = 5.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'STATU'.
+gs_fieldcat-seltext_m = 'STATUS.'.
+gs_fieldcat-col_pos = 6.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'LOEKZ'.
+gs_fieldcat-seltext_m = 'DELETION.'.
+gs_fieldcat-col_pos = 7.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'BANFN'.
+gs_fieldcat-seltext_m = 'PR NO.'.
+gs_fieldcat-col_pos = 8.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* * CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'BNFPO'.
+gs_fieldcat-seltext_m = 'PR LINE ITEM NO.'.
+gs_fieldcat-col_pos = 9.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'BADAT'.
+gs_fieldcat-seltext_m = 'PR DATE.'.
+gs_fieldcat-col_pos = 10.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'LIFNR'.
+gs_fieldcat-seltext_m = 'VENDOR CODE.'.
+gs_fieldcat-col_pos = 11.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_EKKOHEADER'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'NAME2'.
+gs_fieldcat-seltext_m = 'VENDOR NAME.'.
+gs_fieldcat-col_pos = 12.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_EKKOHEADER'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'KOSTL'.
+gs_fieldcat-seltext_m = 'COST CENTER.'.
+gs_fieldcat-col_pos = 13.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'SAKTO'.
+gs_fieldcat-seltext_m = 'G/L CODE.'.
+gs_fieldcat-col_pos = 14.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'WERKS'.
+gs_fieldcat-seltext_m = 'PLANT CODE.'.
+gs_fieldcat-col_pos = 15.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'NAME1'.
+gs_fieldcat-seltext_m = 'PLANT NAME.'.
+gs_fieldcat-col_pos = 16.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'LGORT'.
+gs_fieldcat-seltext_m = 'STORAGE LOCATION CODE.'.
+gs_fieldcat-col_pos = 17.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'LGOBE'.
+gs_fieldcat-seltext_m = 'STORAGE LOCATION NAME.'.
+gs_fieldcat-col_pos = 18.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'STR_SUPPL1'.
+gs_fieldcat-seltext_m = 'ADD1'.
+gs_fieldcat-col_pos = 19.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'STR_SUPPL2'.
+gs_fieldcat-seltext_m = 'ADD2'.
+gs_fieldcat-col_pos = 20.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'STREET'.
+gs_fieldcat-seltext_m = 'STREET'.
+gs_fieldcat-col_pos = 21.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_EKKOHEADER'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'CITY1'.
+gs_fieldcat-seltext_m = 'CITY.'.
+gs_fieldcat-col_pos = 22.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_EKKOHEADER'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'POST_CODE1'.
+gs_fieldcat-seltext_m = 'POSTAL CODE'.
+gs_fieldcat-col_pos = 23.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_EKKOHEADER'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'MATNR'.
+gs_fieldcat-seltext_m = 'MAT NO/ SERIAL'.
+gs_fieldcat-col_pos = 24.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'BELNR'.
+gs_fieldcat-seltext_m = 'MATERIAL DOC NO.'.
+gs_fieldcat-col_pos = 25.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'MEINS'.
+gs_fieldcat-seltext_m = 'UNIT OF MEASUREMENT.'.
+gs_fieldcat-col_pos = 26.
+gs_fieldcat-outputlen = 20.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'MENGE'.
+gs_fieldcat-seltext_m = 'PR QTY.'.
+gs_fieldcat-col_pos = 27.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'NETPR'.
+gs_fieldcat-seltext_m = 'RATE.'.
+gs_fieldcat-col_pos = 28.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'NETWR'.
+gs_fieldcat-seltext_m = 'NET PRICE.'.
+gs_fieldcat-col_pos = 29.
+gs_fieldcat-outputlen = 10.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gs_fieldcat-fieldname = 'SHKZG'.
+gs_fieldcat-seltext_m = 'DEBIT/CREDIT.'.
+gs_fieldcat-col_pos = 30.
+gs_fieldcat-outputlen = 5.
+gs_fieldcat-tabname = 'GT_TREEITEM'.
+APPEND gs_fieldcat TO gt_fieldcat.
+* *CLEAR GS_FIELDCAT.
+gt_layout-expand_fieldname = 'EXPAND'.
+gt_layout-window_titlebar = 'Hierarchical ALV list display'.
+gt_layout-lights_tabname = 'GT_EKKOHEADER'.
+gt_layout-colwidth_optimize = 'X'.
+ENDFORM. "fieldcatlog
+*&---------------------------------------------------------------------*
+*& Form alv_display
+*&---------------------------------------------------------------------*
+* DISPLAY IN GRID FORMAT
+*----------------------------------------------------------------------*
+FORM alv_display.
+CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+EXPORTING
+i_callback_program = 'ZALV_ASH'
+i_callback_user_command = 'DOUBLECLICK'
+it_fieldcat = gt_fieldcat
+TABLES
+t_outtab = gt_final
+EXCEPTIONS
+program_error = 1
+OTHERS = 2.
+IF sy-subrc <> 0.
+MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+ENDIF.
+ENDFORM. "alv_display
+*&---------------------------------------------------------------------*
+*& Form double_click
+*&---------------------------------------------------------------------*
+* double click functionality.
+*----------------------------------------------------------------------*
+* -->GV_UCOMM user command
+* -->GS_SELFIELD field name
+*----------------------------------------------------------------------*
+FORM doubleclick USING gv_ucomm LIKE sy-ucomm gs_selfield TYPE slis_selfield.
+CASE gv_ucomm.
+WHEN '&IC1'.
+CASE gs_selfield-fieldname.
+WHEN 'EBELN'.
+READ TABLE gt_final INTO gs_final INDEX gs_selfield-tabindex.
+SET PARAMETER ID 'BES' FIELD gs_selfield-value.
+CALL TRANSACTION 'ME23N' AND SKIP FIRST SCREEN.
+WHEN 'MATNR'.
+READ TABLE gt_final INTO gs_final INDEX gs_selfield-tabindex.
+SET PARAMETER ID 'MAT' FIELD gs_selfield-value.
+CALL TRANSACTION 'MM03' AND SKIP FIRST SCREEN.
+WHEN 'DEFAULT'.
+ENDCASE.
+ENDCASE.
+ENDFORM. "double_click
+*&---------------------------------------------------------------------*
+*& Form treedisplay
+*&---------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+FORM treedisplay.
+* gt_treefinal = gt_final.
+* DELETE ADJACENT DUPLICATES FROM gt_treefinal COMPARING ebeln.
+CALL FUNCTION 'REUSE_ALV_HIERSEQ_LIST_DISPLAY'
+EXPORTING
+i_callback_program = sy-repid
+is_layout = gt_layout
+it_fieldcat = gt_fieldcat
+i_callback_user_command = 'DOUBLECLICK'
+i_tabname_header = 'GT_EKKOHEADER'
+i_tabname_item = 'GT_TREEITEM'
+is_keyinfo = gs_keyinfo
+TABLES
+t_outtab_header = gt_ekkoheader
+t_outtab_item = gt_final
+EXCEPTIONS
+program_error = 1
+OTHERS = 2.
+IF sy-subrc <> 0.
+MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+ENDIF.
+ENDFORM. "TREE_DISPLAY
+*FORM clear .
+* CLEAR: gt_FINAL,
+* gs_FINAL,
+* gt_fieldcat.
+*ENDFORM.
